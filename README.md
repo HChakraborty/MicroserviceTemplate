@@ -13,6 +13,7 @@ This project provides a structured base for creating new services with consisten
 - Global exception handling middleware
 - CancellationToken support
 - Dependency Injection configuration
+- Unit Tests
 
 ## Project Structure
 
@@ -29,9 +30,13 @@ src/
 ├─ ServiceName.Domain
 │ ├─ Entities
 │ └─ Interfaces
-└─ ServiceName.Infrastructure
-  ├─ Persistence
-  └─ Repositories
+├─ ServiceName.Infrastructure
+│ ├─ Persistence
+│ └─ Repositories
+└─ ServiceName.UnitTests
+  ├─ Controllers
+  ├─ Repository
+  └─ Services
 ```
 
 ## Prerequisites

@@ -16,12 +16,12 @@ public class SampleRepository: IRepository<SampleEntity>
 
     public async Task<IReadOnlyList<SampleEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.SampleEntities.AsNoTracking().ToListAsync(cancellationToken);
+        return await _context.SampleEntities.ToListAsync(cancellationToken);
     }
 
     public async Task<SampleEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await _context.SampleEntities.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id , cancellationToken);
+        return await _context.SampleEntities.FirstOrDefaultAsync(x => x.Id == id , cancellationToken);
     }
 
     public async Task AddAsync(SampleEntity entity, CancellationToken cancellationToken = default)
@@ -38,7 +38,7 @@ public class SampleRepository: IRepository<SampleEntity>
 
     public async Task DeleteByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var entity = await _context.SampleEntities.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var entity = await _context.SampleEntities.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity != null)
         {
             _context.SampleEntities.Remove(entity);
