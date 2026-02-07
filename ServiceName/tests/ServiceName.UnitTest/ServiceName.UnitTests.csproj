@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -25,10 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\ServiceName.Api\ServiceName.Api.csproj" />
-    <ProjectReference Include="..\src\ServiceName.Application\ServiceName.Application.csproj" />
-    <ProjectReference Include="..\src\ServiceName.Domain\ServiceName.Domain.csproj" />
-    <ProjectReference Include="..\src\ServiceName.Infrastructure\ServiceName.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ServiceName.Api\ServiceName.Api.csproj" />
+    <ProjectReference Include="..\..\src\ServiceName.Application\ServiceName.Application.csproj" />
+    <ProjectReference Include="..\..\src\ServiceName.Domain\ServiceName.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ServiceName.Infrastructure\ServiceName.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
