@@ -18,25 +18,27 @@ This project provides a structured base for creating new services with consisten
 ## Project Structure
 
 ```text
-src/
-├─ ServiceName.Api
-│ ├─ Controllers
-│ ├─ Middlewares
-│ └─ Extensions
-├─ ServiceName.Application
-│ ├─ DTOs
-│ ├─ Interfaces
-│ └─ Services
-├─ ServiceName.Domain
-│ ├─ Entities
-│ └─ Interfaces
-├─ ServiceName.Infrastructure
-│ ├─ Persistence
-│ └─ Repositories
-└─ ServiceName.UnitTests
-  ├─ Controllers
-  ├─ Repository
-  └─ Services
+ServiceName
+└─src/
+  ├─ ServiceName.Api
+  │ ├─ Controllers
+  │ ├─ Middlewares
+  │ └─ Extensions
+  ├─ ServiceName.Application
+  │ ├─ DTOs
+  │ ├─ Interfaces
+  │ └─ Services
+  ├─ ServiceName.Domain
+  │ ├─ Entities
+  │ └─ Interfaces
+  ├─ ServiceName.Infrastructure
+  │ ├─ Persistence
+  │ └─ Repositories
+  tests/
+  └─ ServiceName.UnitTests
+    ├─ Controllers
+    ├─ Repository
+    └─ Services
 ```
 
 ## Prerequisites
