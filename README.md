@@ -44,7 +44,7 @@ ServiceName
 ## Prerequisites
 
 - .NET SDK 8 or later
-- Visual Studio / VS Code / Rider
+- Code or text editor
 
 Check installation:
 
@@ -64,7 +64,7 @@ Open Swagger:
 
 `http://localhost:<port>/swagger`
 
-## 🐳 Run with Docker Compose
+## Run with Docker Compose
 
 ### Build and Run Image
 
