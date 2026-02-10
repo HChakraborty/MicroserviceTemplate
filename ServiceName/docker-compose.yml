@@ -1,9 +1,24 @@
 services:
+
   api:
     build: .
-    image: servicename-api
-    container_name: servicename-api
+    image: microservice-template
     ports:
       - "5000:8080"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Dev@123456
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+
+volumes:
+  sql_data:

@@ -77,6 +77,13 @@ The container runs in Development mode by default but you can change in 'docker-
 ASPNETCORE_ENVIRONMENT=Development
 ```
 
+### Database (SQL Server)
+
+- Server: `localhost,1433`
+  - Port `1433` is mapped in `docker-compose.yml` (can be changed if needed)
+- Authentication: SQL Server Authentication
+- Credentials: Defined in the `.env` file
+
 ## Usage
 
 Clone this repository and use it as a base template for new microservices.

@@ -16,10 +16,30 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
+
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration config)
     {
+        var connectionString = config.GetConnectionString("Default");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Database connection string 'Default' is missing.");
+        }
+
+        // Let EF auto-detect migrations from AppDbContext assembly
         services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase("ServiceNameDb"));
+            options.UseSqlServer(
+                connectionString,
+                sql =>
+                {
+                    sql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorNumbersToAdd: null);
+                }));
 
         services.AddScoped<IRepository<SampleEntity>, SampleRepository>();
 

@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using ServiceName.Domain.Entities;
 using ServiceName.Domain.Interfaces;
 using ServiceName.Infrastructure.Persistence;
 using ServiceName.Infrastructure.Repositories;
-using Xunit;
+
 
 namespace ServiceName.UnitTests.Repositories;
 
@@ -11,11 +12,18 @@ public class SampleRepositoryTests
 {
     private static AppDbContext CreateDbContext()
     {
+        var connection = new SqliteConnection("Filename=:memory:");
+        connection.Open();
+
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseSqlite(connection)
             .Options;
 
-        return new AppDbContext(options);
+        var context = new AppDbContext(options);
+
+        context.Database.EnsureCreated();
+
+        return context;
     }
 
     private static IRepository<SampleEntity> CreateRepository(AppDbContext context)
