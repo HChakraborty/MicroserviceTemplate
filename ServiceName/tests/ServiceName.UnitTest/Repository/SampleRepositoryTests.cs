@@ -1,7 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using ServiceName.Domain.Entities;
-using ServiceName.Domain.Interfaces;
+using ServiceName.Application.Interfaces;
 using ServiceName.Infrastructure.Persistence;
 using ServiceName.Infrastructure.Repositories;
 

@@ -1,7 +1,6 @@
 ﻿using ServiceName.Application.DTO;
 using ServiceName.Application.Interfaces;
 using ServiceName.Domain.Entities;
-using ServiceName.Domain.Interfaces;
 
 namespace ServiceName.Application.Services;
 

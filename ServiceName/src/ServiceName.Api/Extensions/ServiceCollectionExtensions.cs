@@ -2,7 +2,6 @@
 using ServiceName.Application.Interfaces;
 using ServiceName.Application.Services;
 using ServiceName.Domain.Entities;
-using ServiceName.Domain.Interfaces;
 using ServiceName.Infrastructure.Persistence;
 using ServiceName.Infrastructure.Repositories;
 

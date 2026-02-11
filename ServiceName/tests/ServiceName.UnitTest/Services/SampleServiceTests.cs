@@ -3,7 +3,6 @@ using ServiceName.Application.DTO;
 using ServiceName.Application.Interfaces;
 using ServiceName.Application.Services;
 using ServiceName.Domain.Entities;
-using ServiceName.Domain.Interfaces;
 
 namespace ServiceName.UnitTests.Services;
 

@@ -1,4 +1,4 @@
-﻿namespace ServiceName.Domain.Interfaces;
+﻿namespace ServiceName.Application.Interfaces;
 
 public interface IRepository<T> where T: class
 {
