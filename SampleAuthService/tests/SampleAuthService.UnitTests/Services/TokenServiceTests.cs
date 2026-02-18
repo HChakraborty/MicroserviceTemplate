@@ -1,11 +1,11 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using SampleAuthService.Application.DTO;
 using SampleAuthService.Application.Interfaces;
 using SampleAuthService.Application.Services;
 using SampleAuthService.Domain.Entities;
 using SampleAuthService.Domain.Enums;
-using Xunit;
 
 namespace SampleAuthService.UnitTests.Services;
 
@@ -14,15 +14,28 @@ public class TokenServiceTests
     private readonly Mock<IUserRepository> _userRepoMock;
     private readonly Mock<IJwtService> _jwtMock;
     private readonly TokenService _service;
+    private readonly Mock<IConfiguration> _configMock;
+    private readonly Mock<IConfigurationSection> _configSectionMock;
 
     public TokenServiceTests()
     {
         _userRepoMock = new Mock<IUserRepository>();
         _jwtMock = new Mock<IJwtService>();
+        _configMock = new Mock<IConfiguration>();
+        _configSectionMock = new Mock<IConfigurationSection>();
+
+        _configSectionMock
+            .Setup(x => x.Value)
+            .Returns("60");
+
+        _configMock
+            .Setup(x => x.GetSection("Jwt:ExpireMinutes"))
+            .Returns(_configSectionMock.Object);
 
         _service = new TokenService(
             _userRepoMock.Object,
-            _jwtMock.Object);
+            _jwtMock.Object,
+            _configMock.Object);
     }
 
     [Fact]

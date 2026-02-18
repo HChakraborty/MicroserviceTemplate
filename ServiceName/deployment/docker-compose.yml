@@ -11,8 +11,10 @@ services:
       - .env
     depends_on:
       - db
+    volumes:
+      - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,7 +30,7 @@ services:
     volumes:
       - sql_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Dev@123456 -Q 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433'"]
       interval: 30s
       timeout: 10s
       retries: 5

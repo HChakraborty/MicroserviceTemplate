@@ -1,6 +1,10 @@
-﻿using SampleAuthService.Api.Extensions;
+﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using SampleAuthService.Api.Extensions;
 using SampleAuthService.Api.Middlewares;
 using SampleAuthService.Infrastructure.Persistence;
+using Serilog;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,10 +23,17 @@ builder.Services.AddSwagger();
 builder.Services.AddAuthentication(builder.Configuration);
 builder.Services.AddAuthorizationPolicies();
 
+// Rate Limiting
 builder.Services.AddRateLimit();
 
+// Logging
+builder.Host
+    .AddLoggingConfiguration(builder.Configuration)
+    .AddGlobalExceptionHandling();
+
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<AuthDbContext>();
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
+    .AddDbContextCheck<AuthDbContext>(tags: ["ready"]);
 
 var app = builder.Build();
 
@@ -39,15 +50,25 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseSerilogRequestLogging();
+
 app.UseRateLimiter();
 
-app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<HttpErrorHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers().RequireRateLimiting("global");
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = r => r.Tags.Contains("live")
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = r => r.Tags.Contains("ready")
+});
 
 app.Run();

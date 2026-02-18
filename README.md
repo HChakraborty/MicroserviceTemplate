@@ -139,13 +139,14 @@ The authentication service handles:
 
 Advanced features such as refresh tokens, email verification, external identity providers, and account recovery are intentionally excluded to keep the template focused and easy to extend.
 
+
 ---
 
 ## Health Checks
 
-Health checks allow infrastructure systems (Docker, Kubernetes, load balancers) to determine whether the service is running and ready.
+Health checks allow infrastructure systems (Docker, Kubernetes, and load balancers) to determine whether the service is running and able to operate correctly.
 
-Endpoint:
+### Endpoint
 
 ```
 GET /health
@@ -153,14 +154,131 @@ GET /health
 
 ### Purpose
 
-* Detect container failures
-* Support automated restarts
-* Enable readiness checks during deployment
-* Monitor database connectivity
+* Detect container or application failures
+* Support automated restarts by orchestration systems
+* Verify that the service is operational
+* Monitor database connectivity through the configured DbContext health check
 
-The endpoint does not require authentication because it is intended for infrastructure monitoring.
+The endpoint includes a database connectivity check to ensure the service can access its primary data store.
+
+### Security
+
+This endpoint does not require authentication because it is intended for infrastructure monitoring within a trusted environment and does not expose sensitive data.
 
 ---
+
+## Logging
+
+This template includes structured logging using **Serilog** to capture application behavior, errors, and diagnostic information.
+
+Logging is essential in microservices because services run in distributed environments where console output alone is insufficient for troubleshooting.
+
+---
+
+### Why Structured Logging?
+
+Structured logging provides:
+
+* Better debugging and incident analysis
+* Correlation between requests and errors
+* Visibility into production behavior
+* Support for centralized log systems (ELK, Seq, Azure Monitor, etc.)
+
+---
+
+### Logging Configuration
+
+Logging behavior is driven by configuration (`appsettings.json` or environment variables) rather than code.
+
+Example configuration:
+
+```json
+"Serilog": {
+  "MinimumLevel": {
+    "Default": "Information",
+    "Override": {
+      "Microsoft": "Warning",
+      "System": "Warning"
+    }
+  },
+  "Enrich": [
+    "FromLogContext",
+    "WithMachineName",
+    "WithThreadId",
+    "WithEnvironmentName"
+  ],
+  "Properties": {
+    "Application": "SampleAuthService"
+  },
+  "WriteTo": [
+    { "Name": "Console" },
+    {
+      "Name": "File",
+      "Args": {
+        "path": "logs/log-.log",
+        "rollingInterval": "Day",
+        "retainedFileCountLimit": 7
+      }
+    }
+  ]
+}
+```
+
+---
+
+### Where Logs Are Stored
+
+In development:
+
+* Console output (for local debugging)
+* Rolling log files inside `/logs` directory
+
+When running in Docker:
+
+* Logs can be persisted using a volume mapping:
+
+```
+./logs:/app/logs
+```
+
+This ensures logs remain available even if containers restart.
+
+---
+
+### HTTP Error Logging
+
+The template includes global middleware that:
+
+* Logs unhandled exceptions
+* Maps exceptions to appropriate HTTP responses
+* Returns standardized `ProblemDetails`
+* Includes a trace identifier for correlation
+
+This prevents controllers and services from needing repetitive try-catch blocks.
+
+---
+
+### Non-HTTP Error Logging
+
+Process-level exceptions are also captured:
+
+* Unhandled exceptions
+* Background task failures
+* Crashes outside request pipeline
+
+This ensures failures are recorded even if the application terminates unexpectedly.
+
+---
+
+### Production Considerations
+
+In real production systems, logs are typically sent to:
+
+* Centralized logging platforms (ELK, Splunk, Datadog)
+* Cloud monitoring services
+* Log aggregation pipelines
+
+File logging in this template is primarily for local development and learning purposes.
 
 ## Rate Limiting
 

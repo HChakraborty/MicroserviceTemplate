@@ -1,4 +1,8 @@
-﻿using ServiceName.Api.Extensions;
+﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using SampleAuthService.Api.Extensions;
+using Serilog;
+using ServiceName.Api.Extensions;
 using ServiceName.Api.Middlewares;
 using ServiceName.Infrastructure.Persistence;
 
@@ -8,21 +12,32 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+// JWT Auth
 builder.Services.AddAuthentication(builder.Configuration);
-
 builder.Services.AddAuthorizationPolicies();
+
 builder.Services.AddSwagger();
 
-
+// Layer wiring
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
+// Rate Limiting
 builder.Services.AddRateLimit();
 
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<AppDbContext>();
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
+    .AddDbContextCheck<AppDbContext>(tags: ["ready"]);
+
+
+// Logging
+builder.Host
+    .AddLoggingConfiguration(builder.Configuration)
+    .AddGlobalExceptionHandling();
 
 var app = builder.Build();
 
@@ -41,16 +56,26 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseSerilogRequestLogging();
+
 app.UseRateLimiter();
 
-app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<HttpErrorHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers().RequireRateLimiting("global");
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = r => r.Tags.Contains("live")
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = r => r.Tags.Contains("ready")
+});
 
 app.Run();
 
