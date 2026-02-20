@@ -1,8 +1,9 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Moq;
-using SampleAuthService.Application.DTO;
+using SampleAuthService.Application.DTO.TokenDto;
 using SampleAuthService.Application.Interfaces;
+using SampleAuthService.Application.Interfaces.Security;
 using SampleAuthService.Application.Services;
 using SampleAuthService.Domain.Entities;
 using SampleAuthService.Domain.Enums;

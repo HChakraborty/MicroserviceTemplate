@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SampleAuthService.Application.DTO;
-using SampleAuthService.Application.Interfaces;
+using SampleAuthService.Application.DTO.UserDto;
+using SampleAuthService.Application.Events;
+using SampleAuthService.Application.Interfaces.Messaging;
+using SampleAuthService.Application.Interfaces.Services;
 using SampleAuthService.Domain.Enums;
 using System.Security.Claims;
 
@@ -12,10 +14,12 @@ namespace SampleAuthService.Api.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserService _auth;
+    private readonly IEventBus _eventBus;
 
-    public UserController(IUserService auth)
+    public UserController(IUserService auth, IEventBus eventBus)
     {
         _auth = auth;
+        _eventBus = eventBus;
     }
 
     [AllowAnonymous]
@@ -23,6 +27,9 @@ public class UserController : ControllerBase
     public async Task<IActionResult> RegisterUserAsync(RegisterUserDto dto)
     {
         await _auth.RegisterUserAsync(dto);
+
+        await _eventBus.PublishAsync(
+            new UserCreatedEvent(dto.Email));
 
         return Ok("User Registeration Successful!");
     }
@@ -34,6 +41,9 @@ public class UserController : ControllerBase
     {
         await _auth.ResetPasswordRequestAsync(dto);
 
+        await _eventBus.PublishAsync(
+            new UserPasswordResetEvent(dto.Email));
+
         return Ok("Password Reset Successful!");
     }
 
@@ -43,7 +53,10 @@ public class UserController : ControllerBase
     {
         await _auth.DeleteUserAsync(email);
 
-        return Ok("Password Reset Successful!");
+        await _eventBus.PublishAsync(
+            new UserDeletedEvent(email));
+
+        return Ok("User deleted Successful!");
     }
 
     [Authorize(Policy = "ReadPolicy")]

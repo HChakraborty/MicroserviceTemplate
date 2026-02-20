@@ -1,4 +1,4 @@
-﻿using SampleAuthService.Application.DTO;
+﻿using SampleAuthService.Application.DTO.UserDto;
 using SampleAuthService.Domain.Entities;
 
 namespace SampleAuthService.Application.Interfaces;

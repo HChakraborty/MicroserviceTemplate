@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceName.Application.DTO;
+using ServiceName.Application.Events;
 using ServiceName.Application.Interfaces;
 
 namespace ServiceName.Api.Controllers;
@@ -11,10 +12,12 @@ namespace ServiceName.Api.Controllers;
 public class SampleController: ControllerBase
 {
     private readonly ISampleService _service;
+    private readonly IEventBus _eventBus;
 
-    public SampleController(ISampleService service)
+    public SampleController(ISampleService service, IEventBus eventBus)
     {
         _service = service;
+        _eventBus = eventBus;
     }
 
     [Authorize(Policy = "ReadPolicy")]
@@ -42,6 +45,10 @@ public class SampleController: ControllerBase
     public async Task<IActionResult> AddAsync(SampleDTO dto)
     {
         await _service.AddAsync(dto);
+
+        await _eventBus.PublishAsync(
+            new SampleCreatedEvent(dto.Name));
+
         return Ok();
     }
 
@@ -56,6 +63,10 @@ public class SampleController: ControllerBase
         dto.Id = id;
 
         await _service.UpdateAsync(dto);
+
+        await _eventBus.PublishAsync(
+            new SampleUpdatedEvent(dto.Id));
+
         return Ok();
     }
 
@@ -63,7 +74,15 @@ public class SampleController: ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteByIdAsync(Guid id)
     {
+        var result = await _service.GetByIdAsync(id);
+
         await _service.DeleteByIdAsync(id);
+
+        if (result != null)
+        {
+            await _eventBus.PublishAsync(
+                new SampleDeletedEvent(result.Id));
+        }
         return Ok();
     }
 }

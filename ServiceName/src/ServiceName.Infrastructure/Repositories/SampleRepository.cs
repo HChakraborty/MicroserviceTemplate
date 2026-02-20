@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ServiceName.Domain.Entities;
-using ServiceName.Application.Interfaces;
 using ServiceName.Infrastructure.Persistence;
+using ServiceName.Application.Interfaces;
 
 namespace ServiceName.Infrastructure.Repositories;
 

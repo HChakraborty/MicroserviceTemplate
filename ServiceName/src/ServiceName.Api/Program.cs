@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SampleAuthService.Api.Extensions;
+using SampleAuthService.Api.Extensions.Services;
 using Serilog;
-using ServiceName.Api.Extensions;
+using ServiceName.Api.Extensions.Application;
+using ServiceName.Api.Extensions.Builder;
+using ServiceName.Api.Extensions.Services;
 using ServiceName.Api.Middlewares;
 using ServiceName.Infrastructure.Persistence;
 
@@ -22,22 +25,24 @@ builder.Services.AddSwagger();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
 // Rate Limiting
 builder.Services.AddRateLimit();
 
+// Health Checks
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
     .AddDbContextCheck<AppDbContext>(tags: ["ready"]);
-
 
 // Logging
 builder.Host
     .AddLoggingConfiguration(builder.Configuration)
     .AddGlobalExceptionHandling();
+
+// Messaging Event Consumers
+builder.Services.AddMessagingEvent();
 
 var app = builder.Build();
 

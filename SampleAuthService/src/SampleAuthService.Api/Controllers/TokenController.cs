@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SampleAuthService.Application.DTO;
+using SampleAuthService.Application.DTO.TokenDto;
 using SampleAuthService.Application.Interfaces;
 
 namespace SampleAuthService.Api.Controllers;

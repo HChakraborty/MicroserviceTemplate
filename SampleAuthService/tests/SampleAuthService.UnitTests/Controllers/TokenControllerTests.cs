@@ -2,7 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SampleAuthService.Api.Controllers;
-using SampleAuthService.Application.DTO;
+using SampleAuthService.Application.DTO.TokenDto;
 using SampleAuthService.Application.Interfaces;
 
 namespace SampleAuthService.UnitTests.Controllers;

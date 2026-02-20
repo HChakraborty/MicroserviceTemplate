@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SampleAuthService.Api.Controllers;
 using SampleAuthService.Application.DTO;
-using SampleAuthService.Application.Interfaces;
+using SampleAuthService.Application.DTO.UserDto;
+using SampleAuthService.Application.Interfaces.Messaging;
+using SampleAuthService.Application.Interfaces.Services;
 using SampleAuthService.Domain.Enums;
 using System.Security.Claims;
 
@@ -14,11 +16,13 @@ public class UserControllerTests
 {
     private readonly Mock<IUserService> _userMock;
     private readonly UserController _controller;
+    private readonly Mock<IEventBus> _eventBus;
 
     public UserControllerTests()
     {
         _userMock = new Mock<IUserService>();
-        _controller = new UserController(_userMock.Object);
+        _eventBus = new Mock<IEventBus>();
+        _controller = new UserController(_userMock.Object, _eventBus.Object);
     }
 
     [Fact]

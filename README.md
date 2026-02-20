@@ -167,6 +167,252 @@ This endpoint does not require authentication because it is intended for infrast
 
 ---
 
+# Event-Driven Messaging (RabbitMQ)
+
+## Event-Driven Messaging (RabbitMQ)
+
+This template includes optional support for **event-driven communication** between microservices using a message broker (RabbitMQ by default).
+
+Event-driven messaging enables services to communicate asynchronously by publishing and consuming events rather than calling each other directly through REST APIs. This reduces tight coupling and improves system resilience.
+
+> **Note:** RabbitMQ is used as a reference implementation in this template. Any compatible messaging platform (Kafka, Azure Service Bus, AWS SNS/SQS, Google Pub/Sub, etc.) can be substituted depending on system requirements.
+
+---
+
+### Why Event-Driven Messaging?
+
+Synchronous REST communication creates runtime dependencies:
+
+```
+Service A → HTTP → Service B
+```
+
+If Service B is unavailable, Service A may fail or experience delays.
+
+Event-driven messaging decouples services:
+
+```
+Service A → Message Broker → Service B / Service C / Service D
+```
+
+The publishing service does not need to know which services consume the event.
+
+This enables independent scaling, deployment, and failure isolation.
+
+---
+
+### Publish–Subscribe Model
+
+The template uses the **publish–subscribe pattern**.
+
+Each service connects to a shared message broker and communicates through exchanges and queues.
+
+In the current implementation, a service can publish and consume its own events internally (within the same service) to support background processing and decoupled workflows.
+
+This allows asynchronous handling of operations without blocking the original request.
+
+```
+Publisher Service
+      │
+      ▼
+   Message Broker
+      │
+      ▼
+Internal Consumer (same service)
+```
+
+This pattern is useful for tasks such as:
+
+* Sending notifications
+* Triggering background jobs
+* Performing non-blocking processing
+* Separating write operations from side effects
+
+---
+
+The architecture is designed so that **other microservices can subscribe to the same events in the future without modifying the publishing service**.
+
+```
+Publisher Service
+      │
+      ▼
+   Message Broker
+      │
+ ┌────┴──────────────┐
+ │                   │
+Internal Consumer    External Consumer Service
+(same service)       (different service)
+```
+
+Multiple services can react to the same event independently, enabling loose coupling and extensibility as the system grows.
+
+---
+
+### Event-Driven Setup in This Template
+
+Both the **SampleAuthService** and the **ServiceName** resource service include their own messaging configuration.
+
+Each service can:
+
+* Publish domain events
+* Consume events from other services
+* Operate independently of other services
+
+#### Example — Publishing an Event
+
+When a user is created in the authentication service:
+
+```csharp
+await _eventBus.PublishAsync(
+    new UserCreatedEvent(user.Id, user.Email));
+```
+
+#### Example — Consuming an Event
+
+A consuming service subscribes using a background worker:
+
+```csharp
+await _eventBus.Subscribe<UserCreatedEvent>(Handle);
+```
+
+Consumers process events asynchronously without blocking the publisher.
+
+---
+
+### REST vs Event Communication
+
+Modern systems typically use a **hybrid approach**, combining REST and event-driven messaging based on requirements.
+
+#### Use REST When
+
+* Immediate response is required
+* Client-facing operations
+* Validation before processing
+* Querying current state
+
+```
+Client → REST → Service → Response
+```
+
+REST provides strong consistency and request–response semantics.
+
+---
+
+#### Use Events When
+
+* Notifying other services of changes
+* Triggering background workflows
+* Avoiding tight coupling
+* Multiple services must react independently
+
+```
+Service → Event → Multiple Services
+```
+
+Events provide resilience and scalability but introduce eventual consistency.
+
+---
+
+### Typical Hybrid Flow
+
+Most microservice systems follow this pattern:
+
+```
+Client → REST → Service → Event → Other Services
+```
+
+1. A client sends a request via REST
+2. The service processes the operation
+3. The service publishes an event
+4. Other services react asynchronously
+
+This combines real-time interaction with decoupled integration.
+
+---
+
+### Communication Within the Same Machine
+
+When running locally (e.g., multiple services on different ports):
+
+* All services connect to the same local broker instance
+* No direct service URLs are required for event delivery
+
+Example local configuration:
+
+```
+RabbitMQ → localhost:5672
+```
+
+Services communicate indirectly through the broker.
+
+---
+
+### Communication Across Networks
+
+In distributed environments:
+
+* Services connect to a shared broker endpoint
+  (e.g., `rabbitmq.company.internal`)
+* Services do not need to know each other’s locations
+* The broker handles routing and delivery
+
+External clients still interact with services via REST APIs.
+
+---
+
+### Advantages of Event-Driven Messaging
+
+* Loose coupling between services
+* Improved resilience and fault tolerance
+* Independent deployment
+* Horizontal scalability
+* Support for asynchronous workflows
+
+---
+
+### Trade-Offs
+
+* Eventual consistency between services
+* More complex debugging and tracing
+* Duplicate message handling required
+* Additional infrastructure
+
+Consumers should implement idempotent processing to handle possible duplicate deliveries.
+
+---
+
+### Message Broker Flexibility
+
+RabbitMQ is included as a **reference implementation** for learning and development purposes.
+
+Depending on system needs, it can be replaced with:
+
+* Apache Kafka (high-throughput streaming)
+* Azure Service Bus
+* AWS SNS/SQS
+* Google Pub/Sub
+* Other AMQP-compatible brokers
+
+The template’s abstraction allows swapping messaging platforms without changing application logic.
+
+---
+
+### Scope of Implementation
+
+The messaging setup is intentionally minimal to keep the template approachable.
+
+Advanced patterns such as:
+
+* Retry policies
+* Dead-letter queues
+* Message versioning
+* Outbox pattern
+* Distributed transactions
+
+can be added as the system evolves.
+
+---
+
 ## Logging
 
 This template includes structured logging using **Serilog** to capture application behavior, errors, and diagnostic information.
@@ -587,8 +833,12 @@ ServiceName
   │ ├─ Controllers
   │ ├─ Middlewares
   │ └─ Extensions
+  │   ├─ Application
+  │   ├─ Builder
+  │   └─ Services
   ├─ ServiceName.Application
   │ ├─ DTOs
+  │ ├─ Events
   │ ├─ Interfaces
   │ └─ Services
   ├─ ServiceName.Domain
@@ -597,6 +847,9 @@ ServiceName
   ├─ ServiceName.Infrastructure
   │ ├─ Persistence
   │ ├─ Repositories
+  │ ├─ BackgroundServices
+  │ ├─ Configuration
+  │ ├─ Messaging
   │ └─ Migrations
 tests/
   ├─ ServiceName.UnitTests
@@ -615,6 +868,9 @@ SampleAuthService
   │ ├─ Controllers
   │ ├─ Middlewares
   │ └─ Extensions
+  │   ├─ Application
+  │   ├─ Builder
+  │   └─ Services
   ├─ AuthService.Application
   │ ├─ DTOs
   │ ├─ Interfaces
@@ -626,6 +882,9 @@ SampleAuthService
   │ ├─ Persistence
   │ ├─ Repositories
   │ ├─ Security
+  │ ├─ BackgroundServices
+  │ ├─ Configuration
+  │ ├─ Messaging
   │ └─ Migrations
 tests/
   ├─ AuthService.UnitTests
@@ -649,7 +908,7 @@ Service Tests     → mock repositories
 Repository Tests  → in-memory database
 ```
 
-Integration tests can be added later for end-to-end validation.
+Integration tests will be added later for end-to-end validation.
 
 ---
 
@@ -680,12 +939,6 @@ docker compose up --build
 docker compose down
 ```
 
-### Access Swagger
-
-```
-http://localhost:5000/swagger
-```
-
 ---
 
 ## Environment
@@ -700,11 +953,21 @@ Can be changed in `docker-compose.yml`.
 
 ---
 
+## Swagger
+
+* ServiceName: `http://localhost:5000/swagger/index.html`
+* SampleAuthService: `http://localhost:5001/swagger/index.html`
+
+Can be changed in `docker-compose.yml`.
+
 ## Database (SQL Server)
 
-* Server: `localhost,1433`
+* ServiceName DB Server: `localhost,1433`,
+* SampleAuthService DB Server: `localhost,1434`
 * Authentication: SQL Server Authentication
 * Credentials: Defined in `.env`
+
+Can be changed in `docker-compose.yml`.
 
 ---
 

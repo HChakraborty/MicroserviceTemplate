@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SampleAuthService.Api.Extensions;
+using SampleAuthService.Api.Extensions.Application;
+using SampleAuthService.Api.Extensions.Services;
 using SampleAuthService.Api.Middlewares;
 using SampleAuthService.Infrastructure.Persistence;
 using Serilog;
-using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,9 +32,13 @@ builder.Host
     .AddLoggingConfiguration(builder.Configuration)
     .AddGlobalExceptionHandling();
 
+// Health Checks
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
     .AddDbContextCheck<AuthDbContext>(tags: ["ready"]);
+
+// Messaging Event Consumers
+builder.Services.AddMessagingEvent();
 
 var app = builder.Build();
 

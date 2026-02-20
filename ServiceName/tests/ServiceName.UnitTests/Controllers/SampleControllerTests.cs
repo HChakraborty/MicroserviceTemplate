@@ -10,11 +10,13 @@ public class SampleControllerTests
 {
     private readonly Mock<ISampleService> _mockService;
     private readonly SampleController _controller;
+    private readonly Mock<IEventBus> _eventBus;
 
     public SampleControllerTests()
     {
         _mockService = new Mock<ISampleService>();
-        _controller = new SampleController(_mockService.Object);
+        _eventBus = new Mock<IEventBus>();
+        _controller = new SampleController(_mockService.Object, _eventBus.Object);
     }
 
     [Fact]
