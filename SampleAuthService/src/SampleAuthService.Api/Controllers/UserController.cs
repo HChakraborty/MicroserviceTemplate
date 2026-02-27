@@ -35,7 +35,7 @@ public class UserController : ControllerBase
 
         var response = new RegisterUserResponseDto
         {
-            Message = $"User Registration Successful for ${dto.Email} with Role ${dto.Role}!"
+            Message = $"User Registration Successful for {dto.Email} with Role {dto.Role}!"
         };
 
         return Ok(response);
@@ -53,7 +53,7 @@ public class UserController : ControllerBase
 
         var response = new ResetPasswordResponseDto
         {
-            Message = $"Password Reset Successful for ${dto.Email}!"
+            Message = $"Password Reset Successful for {dto.Email}!"
         };
 
         return Ok(response);
@@ -70,7 +70,7 @@ public class UserController : ControllerBase
 
         var response = new DeleteUserResponseDto
         {
-            Message = $"User Deletion Successful for ${email}!"
+            Message = $"User Deletion Successful for {email}!"
         };
 
         return Ok(response);

@@ -7,6 +7,9 @@ public static class ApplicationBuilderExtensions
     // retry logic handles delayed startup of the database
     public static WebApplication ApplyDatabaseMigrations(this WebApplication app)
     {
+        if (app.Environment.IsEnvironment("IntegrationTests"))
+            return app;
+
         using var scope = app.Services.CreateScope();
 
         var services = scope.ServiceProvider;

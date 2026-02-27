@@ -673,6 +673,292 @@ Limits can be adjusted depending on business requirements and traffic patterns. 
 
 ---
 
+## Testing
+
+This template includes both **unit tests** and **integration tests** to validate behavior at different layers of the system.
+
+The testing approach follows Clean Architecture principles and isolates concerns appropriately.
+
+---
+
+## Unit Tests
+
+Unit tests validate individual components in isolation without requiring external infrastructure such as databases, caches, or message brokers.
+
+The template includes unit tests for:
+
+* Controllers
+* Application services
+* Repositories
+* Authentication logic
+
+Dependencies are mocked using **Moq**, and in-memory database providers are used where persistence behavior must be verified.
+
+---
+
+## Controller Tests
+
+Controller tests verify HTTP behavior and interaction with application services without running the ASP.NET runtime.
+
+Dependencies such as services and event bus implementations are mocked.
+
+### Example — Controller Behavior
+
+From `SampleControllerTests`:
+
+```csharp
+_mockService
+    .Setup(x => x.GetAllAsync())
+    .ReturnsAsync(new List<GetSampleRequestDto>
+    {
+        new GetSampleRequestDto(),
+        new GetSampleRequestDto()
+    });
+
+var result = await _controller.GetAllAsync();
+
+var ok = Assert.IsType<OkObjectResult>(result);
+var data = Assert.IsAssignableFrom<IEnumerable<GetSampleRequestDto>>(ok.Value);
+
+Assert.Equal(2, data.Count());
+```
+
+Controllers that publish events also verify event dispatch:
+
+```csharp
+_eventBus.Verify(
+    e => e.PublishAsync(It.Is<SampleCreatedEvent>(
+        ev => ev.Id == createdId)),
+    Times.Once);
+```
+
+---
+
+## Application Service Tests
+
+Application services are tested independently from controllers and infrastructure.
+
+Repositories and cache services are mocked to verify business logic only.
+
+### Example — Business Logic Mapping
+
+```csharp
+_repoMock
+    .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+    .ReturnsAsync(entities);
+
+var result = await _service.GetAllAsync();
+
+Assert.Equal(2, result.Count);
+Assert.Equal("One", result[0].Name);
+```
+
+---
+
+## Cache Behavior Tests (Service Layer)
+
+Caching is treated as an application concern, so cache behavior is tested at the service layer using mocked cache abstractions.
+
+The tests verify the full cache lifecycle:
+
+### Cache Hit
+
+```csharp
+_cacheMock
+    .Setup(c => c.GetAsync<GetSampleRequestDto>($"sample:id:{id}"))
+    .ReturnsAsync(cachedDto);
+
+var result = await _service.GetByIdAsync(id);
+
+_repoMock.Verify(
+    r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+    Times.Never);
+```
+
+### Cache Miss → Database → Cache Set
+
+```csharp
+_cacheMock
+    .Setup(c => c.GetAsync<GetSampleRequestDto>($"sample:id:{id}"))
+    .ReturnsAsync((GetSampleRequestDto?)null);
+
+_repoMock
+    .Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+    .ReturnsAsync(entity);
+
+await _service.GetByIdAsync(id);
+
+_cacheMock.Verify(
+    c => c.SetAsync(
+        $"sample:id:{id}",
+        It.IsAny<GetSampleRequestDto>(),
+        It.IsAny<TimeSpan>()),
+    Times.Once);
+```
+
+### Cache Invalidation on Data Changes
+
+```csharp
+_cacheMock.Verify(
+    c => c.RemoveAsync($"sample:id:{id}"),
+    Times.Once);
+```
+
+This validates that cache entries are removed when entities are added, updated, or deleted.
+
+---
+
+## Repository Tests
+
+Repository tests validate persistence logic using in-memory database providers.
+
+### Resource Service — SQLite In-Memory
+
+```csharp
+var connection = new SqliteConnection("Filename=:memory:");
+await connection.OpenAsync();
+
+var options = new DbContextOptionsBuilder<AppDbContext>()
+    .UseSqlite(connection)
+    .Options;
+
+var context = new AppDbContext(options);
+await context.Database.EnsureCreatedAsync();
+```
+
+### Authentication Service — EF Core InMemory Provider
+
+```csharp
+var options = new DbContextOptionsBuilder<AuthDbContext>()
+    .UseInMemoryDatabase(Guid.NewGuid().ToString())
+    .Options;
+```
+
+These tests verify create, read, update, and delete operations without requiring a real database.
+
+---
+
+## Authentication Logic Tests
+
+Authentication workflows are tested at the service level.
+
+### Example — Token Generation Flow
+
+```csharp
+_userRepoMock
+    .Setup(x => x.GetUserByEmailAsync(email, It.IsAny<CancellationToken>()))
+    .ReturnsAsync(user);
+
+_jwtMock
+    .Setup(x => x.GenerateToken(user))
+    .Returns("fake-jwt");
+
+var result = await _service.GenerateTokenAsync(dto);
+
+Assert.Equal("fake-jwt", result!.AccessToken);
+```
+
+Low-level JWT creation is not tested directly because it relies on framework components.
+Testing the token service ensures the authentication flow works correctly.
+
+---
+
+## Integration Tests
+
+Integration tests validate the behavior of the application running as a real system, including:
+
+* HTTP pipeline
+* Routing
+* Filters
+* Authorization policies
+* Database interactions
+
+External dependencies are provided using **Docker containers via Testcontainers**.
+
+---
+
+## Infrastructure Used in Integration Tests
+
+Integration tests start real instances of:
+
+* SQL Server
+* Redis (optional)
+* RabbitMQ
+
+using containerized environments.
+
+This ensures tests run against realistic infrastructure without requiring manual setup.
+
+---
+
+## Authentication in Integration Tests
+
+Instead of generating real JWT tokens, integration tests use a **fake policy evaluator** that simulates authentication and authorization.
+
+Roles are injected via request headers:
+
+```
+X-Test-Role: Admin
+X-Test-Role: WriteUser
+X-Test-Role: ReadUser
+```
+
+This allows testing authorization policies without depending on the authentication service.
+
+---
+
+## Example — Role-Based Authorization Test
+
+```csharp
+var client = CreateClientWithRole("WriteUser");
+
+var response = await client.DeleteAsync($"/api/v1/samples/{id}");
+
+response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+```
+
+---
+
+## Database Isolation
+
+Each integration test run:
+
+1. Applies migrations once
+2. Clears database state before tests
+
+This ensures deterministic and repeatable results.
+
+---
+
+## Why Docker Must Be Running
+
+Integration tests rely on containerized infrastructure.
+Docker must be running because the tests dynamically start:
+
+* SQL Server container
+* Redis container
+* RabbitMQ container
+
+Without Docker, the infrastructure required by the application cannot be provisioned.
+
+---
+
+## Testing Philosophy
+
+The template follows a layered testing strategy:
+
+## Unit Tests
+
+Validate behavior of individual components in isolation.
+
+## Integration Tests
+
+Validate interaction between components and infrastructure.
+
+This approach provides fast feedback during development while ensuring confidence in system behavior.
+
+---
+
 ## Request Flow
 
 A typical request to a protected endpoint:
@@ -988,31 +1274,82 @@ These concerns should be handled through existing abstractions to maintain consi
 
 ---
 
+Excellent observation. ✅
+You found a **real documentation bug** in your template.
+
+Right now Step 10 implies:
+
+> ❌ Only unit tests matter
+> ❌ Integration tests are optional
+> ❌ Infrastructure is tested only via in-memory DB
+
+But your template **clearly supports integration tests** with:
+
+* Testcontainers
+* Real DB
+* Fake auth
+* Full pipeline testing
+
+So Step 10 must reflect BOTH.
+
+---
 ### Step 10 — Add Tests
 
-Test each layer independently:
+Test the feature at multiple layers to ensure correctness and integration with the system.
+
+#### Unit Tests
+
+Validate each layer in isolation:
 
 | Layer          | Testing Strategy                        |
 | -------------- | --------------------------------------- |
-| Controller     | Mock Application services               |
+| Controller     | Mock application services               |
 | Application    | Mock repositories and external services |
 | Infrastructure | In-memory or test database              |
 
-This layered testing approach avoids fragile end-to-end tests while maintaining confidence in the system.
+Unit tests provide fast feedback and verify business logic without requiring external systems.
 
 ---
 
-## Development Workflow Summary
+#### Integration Tests
 
-```
-Domain → Application → Infrastructure → API
-```
+Validate the feature as part of the running application.
 
-Always build features from the inside out to preserve architectural integrity.
+Integration tests should cover:
+
+* HTTP endpoints
+* Routing and filters
+* Authorization policies
+* Database interaction
+* Cross-cutting concerns (caching, messaging, etc.)
+
+Use the provided integration test infrastructure:
+
+* `WebApplicationFactory`
+* Testcontainers (SQL Server, Redis, RabbitMQ)
+* Fake authentication for role-based testing
+* Real database migrations
+
+Integration tests ensure the feature works correctly within the service’s runtime environment.
 
 ---
 
-## Why This Process Matters
+#### Why Both Are Required
+
+Unit tests verify correctness of individual components.
+Integration tests verify that components work together correctly.
+
+Using both prevents:
+
+* False confidence from isolated tests
+* Fragile end-to-end tests
+* Undetected configuration issues
+
+This layered approach maintains reliability while keeping tests fast and maintainable.
+
+---
+
+#### Why This Process Matters
 
 Following this workflow ensures:
 
@@ -1060,6 +1397,10 @@ tests/
   │ ├─ Controllers
   │ ├─ Repository
   │ └─ Services
+  ├─ ServiceName.IntegrationTests
+  │ ├─ Api
+  │ ├─ Fixtures
+  │ └─ Helpers
 deployment/
 ```
 
@@ -1068,21 +1409,21 @@ deployment/
 ```text
 SampleAuthService
 └─src/
-  ├─ AuthService.Api
+  ├─ SampleAuthService.Api
   │ ├─ Controllers
   │ ├─ Middlewares
   │ └─ Extensions
   │   ├─ Application
   │   ├─ Builder
   │   └─ Services
-  ├─ AuthService.Application
+  ├─ SampleAuthService.Application
   │ ├─ DTOs
   │ ├─ Interfaces
   │ └─ Services
-  ├─ AuthService.Domain
+  ├─ SampleAuthService.Domain
   │ ├─ Enums
   │ └─ Entities
-  ├─ AuthService.Infrastructure
+  ├─ SampleAuthService.Infrastructure
   │ ├─ Persistence
   │ ├─ Repositories
   │ ├─ Security
@@ -1092,10 +1433,14 @@ SampleAuthService
   │ ├─ Caching
   │ └─ Migrations
 tests/
-  ├─ AuthService.UnitTests
+  ├─ SampleAuthService.UnitTests
   │ ├─ Controllers
   │ ├─ Repository
   │ └─ Services
+  ├─ SampleAuthService.IntegrationTests
+  │ ├─ Api
+  │ ├─ Fixtures
+  │ └─ Helpers
 deployment/
 ```
 

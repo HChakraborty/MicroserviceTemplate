@@ -1,36 +1,100 @@
-﻿using SampleAuthService.Application.Interfaces;
+﻿using Microsoft.Extensions.Logging;
+using SampleAuthService.Application.Interfaces;
 using System.Text.Json;
 using StackExchange.Redis;
 
 namespace SampleAuthService.Infrastructure.Caching;
 
+/// <summary>
+/// Redis cache implementation using cache-aside pattern.
+/// 
+/// IMPORTANT:
+/// Cache is treated as OPTIONAL infrastructure.
+/// Failures (connection issues, timeouts) must NOT break core business operations.
+/// 
+/// Behavior:
+/// - Cache hit → return data
+/// - Cache miss → return null (fallback to DB in Application layer)
+/// - Cache unavailable → behave like cache miss
+/// 
+/// This ensures system correctness does not depend on Redis availability,
+/// which is especially important in integration tests and production outages.
+/// </summary>
 public class RedisCacheService : ICacheService
 {
     private readonly IDatabase _db;
+    private readonly ILogger<RedisCacheService> _logger;
 
-    public RedisCacheService(IConnectionMultiplexer redis)
+    public RedisCacheService(
+        IConnectionMultiplexer redis,
+        ILogger<RedisCacheService> logger)
     {
         _db = redis.GetDatabase();
+        _logger = logger;
     }
 
     public async Task<T?> GetAsync<T>(string key)
     {
-        var value = await _db.StringGetAsync(key);
+        try
+        {
+            var value = await _db.StringGetAsync(key);
 
-        return value.HasValue
-            ? JsonSerializer.Deserialize<T>(value!)
-            : default;
+            if (!value.HasValue)
+                return default;
+
+            return JsonSerializer.Deserialize<T>(value!);
+        }
+        catch (RedisConnectionException ex)
+        {
+            _logger.LogWarning(ex,
+                "Redis unavailable. Cache GET failed for key {CacheKey}", key);
+
+            return default; // behave like cache miss
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex,
+                "Redis timeout. Cache GET failed for key {CacheKey}", key);
+
+            return default;
+        }
     }
 
     public async Task SetAsync<T>(string key, T value, TimeSpan ttl)
     {
-        var json = JsonSerializer.Serialize(value);
+        try
+        {
+            var json = JsonSerializer.Serialize(value);
 
-        await _db.StringSetAsync(key, json, ttl);
+            await _db.StringSetAsync(key, json, ttl);
+        }
+        catch (RedisConnectionException ex)
+        {
+            _logger.LogWarning(ex,
+                "Redis unavailable. Cache SET failed for key {CacheKey}", key);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex,
+                "Redis timeout. Cache SET failed for key {CacheKey}", key);
+        }
     }
 
     public async Task RemoveAsync(string key)
     {
-        await _db.KeyDeleteAsync(key);
+        try
+        {
+            await _db.KeyDeleteAsync(key);
+        }
+        catch (RedisConnectionException ex)
+        {
+            _logger.LogWarning(ex,
+                "Redis unavailable. Cache REMOVE failed for key {CacheKey}", key);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex,
+                "Redis timeout. Cache REMOVE failed for key {CacheKey}", key);
+        }
     }
 }
