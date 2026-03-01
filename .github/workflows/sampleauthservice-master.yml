@@ -1,0 +1,49 @@
+name: SampleAuthService Master Pipeline
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'SampleAuthService/**'
+
+jobs:
+  full-pipeline:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: SampleAuthService
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Start Auth Infrastructure
+        run: docker compose -f deployment/docker-compose.yml up -d auth-db rabbitmq-auth redis-auth
+
+      - name: Wait for MSSQL
+        run: sleep 60
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      - name: Unit Tests
+        run: dotnet test tests/SampleAuthService.UnitTests --no-build
+
+      - name: Integration Tests
+        run: dotnet test tests/SampleAuthService.IntegrationTests --no-build
+
+      - name: Publish API
+        run: dotnet publish src/SampleAuthService.Api -c Release -o out
+
+      - name: Docker Build
+        run: docker build -t sample-auth-service ./src/SampleAuthService.Api

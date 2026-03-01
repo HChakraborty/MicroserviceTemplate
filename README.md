@@ -56,11 +56,11 @@ The resource service validates tokens and enforces authorization policies rather
 ### Authentication Flow
 
 ```
-Client → AuthService → JWT Token → Protected Service
+Client → SampleAuthService → JWT Token → Protected Service
 ```
 
 1. User registers or logs in via **SampleAuthService**
-2. AuthService generates a JWT access token
+2. SampleAuthService generates a JWT access token
 3. Client includes the token in requests:
 
 ```
@@ -127,7 +127,7 @@ Policies provide fine-grained access control beyond simple authentication.
 
 ---
 
-## AuthService Responsibilities
+## SampleAuthService Responsibilities
 
 The authentication service handles:
 
