@@ -2,8 +2,7 @@ name: SampleAuthService Master Pipeline
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
     paths:
       - 'SampleAuthService/**'
 
@@ -28,7 +27,7 @@ jobs:
         run: docker compose -f deployment/docker-compose.yml up -d auth-db rabbitmq-auth redis-auth
 
       - name: Wait for MSSQL
-        run: sleep 60
+        run: sleep 120
 
       - name: Restore
         run: dotnet restore
@@ -45,5 +44,5 @@ jobs:
       - name: Publish API
         run: dotnet publish src/SampleAuthService.Api -c Release -o out
 
-      - name: Docker Build
+      - name: Build Docker Image
         run: docker build -t sample-auth-service ./src/SampleAuthService.Api

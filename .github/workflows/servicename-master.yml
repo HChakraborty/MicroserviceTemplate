@@ -2,8 +2,7 @@ name: ServiceName Master Pipeline
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
     paths:
       - 'ServiceName/**'
 
@@ -15,47 +14,21 @@ jobs:
       run:
         working-directory: ServiceName
 
-    services:
-      mssql:
-        image: mcr.microsoft.com/mssql/server:2022-latest
-        env:
-          ACCEPT_EULA: Y
-          SA_PASSWORD: Dev@123456
-        ports:
-          - 1433:1433
-        options: >-
-          --health-cmd="bash -c '</dev/tcp/localhost/1433'"
-          --health-interval=30s
-          --health-timeout=10s
-          --health-retries=5
-
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore
-        run: dotnet restore
+      - name: Start Infrastructure
+        run: docker compose -f deployment/docker-compose.yml up -d db rabbitmq redis
 
-      - name: Build
-        run: dotnet build --no-restore
+      - name: Wait for MSSQL
+        run: sleep 90
+
+      - run: dotnet restore
+      - run: dotnet build --no-restore
 
       - name: Unit Tests
         run: dotnet test tests/ServiceName.UnitTests --no-build
@@ -65,6 +38,3 @@ jobs:
 
       - name: Publish API
         run: dotnet publish src/ServiceName.Api -c Release -o out
-
-      - name: Docker Build
-        run: docker build -t servicename-api ./src/ServiceName.Api
