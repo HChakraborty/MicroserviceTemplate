@@ -84,3 +84,4 @@ public class RabbitMqEventBus : IEventBus, IDisposable
         _connection.Dispose();
     }
 }
+
