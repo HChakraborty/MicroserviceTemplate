@@ -10,31 +10,35 @@ jobs:
   full-pipeline:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ServiceName
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
       - name: Start Infrastructure
-        run: docker compose -f deployment/docker-compose.yml up -d db rabbitmq redis
+        run: docker compose -f ServiceName/deployment/docker-compose.yml up -d db rabbitmq redis
 
       - name: Wait for MSSQL
         run: sleep 90
 
-      - run: dotnet restore
-      - run: dotnet build --no-restore
+      - name: Restore
+        run: dotnet restore ServiceName/src/ServiceName.Api/ServiceName.Api.csproj
+
+      - name: Build
+        run: dotnet build ServiceName/src/ServiceName.Api/ServiceName.Api.csproj --no-restore
 
       - name: Unit Tests
-        run: dotnet test tests/ServiceName.UnitTests --no-build
+        run: dotnet test ServiceName/tests/ServiceName.UnitTests/ServiceName.UnitTests.csproj --no-build
 
       - name: Integration Tests
-        run: dotnet test tests/ServiceName.IntegrationTests --no-build
+        run: dotnet test ServiceName/tests/ServiceName.IntegrationTests/ServiceName.IntegrationTests.csproj --no-build
 
       - name: Publish API
-        run: dotnet publish src/ServiceName.Api -c Release -o out
+        run: dotnet publish ServiceName/src/ServiceName.Api/ServiceName.Api.csproj -c Release -o out
+
+      - name: Docker Build
+        run: docker build -t service-name -f ServiceName/deployment/Dockerfile .
