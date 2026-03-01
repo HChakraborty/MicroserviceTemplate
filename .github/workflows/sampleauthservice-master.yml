@@ -26,11 +26,11 @@ jobs:
       - name: Wait for MSSQL
         run: sleep 90
 
-      - name: Restore
-        run: dotnet restore SampleAuthService/src/SampleAuthService.Api/SampleAuthService.Api.csproj
+      - name: Restore Solution
+        run: dotnet restore SampleAuthService/SampleAuthService.sln
 
-      - name: Build
-        run: dotnet build SampleAuthService/src/SampleAuthService.Api/SampleAuthService.Api.csproj --no-restore
+      - name: Build Solution
+        run: dotnet build SampleAuthService/SampleAuthService.sln --no-restore
 
       - name: Unit Tests
         run: dotnet test SampleAuthService/tests/SampleAuthService.UnitTests/SampleAuthService.UnitTests.csproj --no-build
