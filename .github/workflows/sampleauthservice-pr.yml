@@ -1,12 +1,8 @@
 name: SampleAuthService PR Checks
 
 on:
-  push:
-    branches-ignore:
-      - master
-    paths:
-      - 'SampleAuthService/**'
   pull_request:
+    branches: [master]
     paths:
       - 'SampleAuthService/**'
 

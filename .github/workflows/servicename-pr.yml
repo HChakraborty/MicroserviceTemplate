@@ -1,12 +1,8 @@
 name: ServiceName PR Checks
 
 on:
-  push:
-    branches-ignore:
-      - master
-    paths:
-      - 'ServiceName/**'
   pull_request:
+    branches: [master]
     paths:
       - 'ServiceName/**'
 
