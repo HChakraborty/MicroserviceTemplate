@@ -41,5 +41,5 @@ jobs:
       - name: Publish API
         run: dotnet publish SampleAuthService/src/SampleAuthService.Api/SampleAuthService.Api.csproj -c Release -o out
 
-      - name: Docker Build
-        run: docker build -t sample-auth-service -f SampleAuthService/deployment/Dockerfile .
+      - name: Docker Build API Image via Compose
+        run: docker compose -f SampleAuthService/deployment/docker-compose.yml build auth-api
