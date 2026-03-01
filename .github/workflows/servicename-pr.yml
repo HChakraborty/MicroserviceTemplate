@@ -1,0 +1,37 @@
+name: ServiceName PR Checks
+
+on:
+  push:
+    branches-ignore:
+      - master
+    paths:
+      - 'ServiceName/**'
+  pull_request:
+    paths:
+      - 'ServiceName/**'
+
+jobs:
+  build-unit:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ServiceName
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      - name: Unit Tests
+        run: dotnet test tests/ServiceName.UnitTests --no-build --verbosity normal
