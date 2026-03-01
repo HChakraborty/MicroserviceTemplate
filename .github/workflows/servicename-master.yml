@@ -40,5 +40,5 @@ jobs:
       - name: Publish API
         run: dotnet publish ServiceName/src/ServiceName.Api/ServiceName.Api.csproj -c Release -o out
 
-      - name: Docker Build
-        run: docker build -t service-name -f ServiceName/deployment/Dockerfile .
+      - name: Docker Build API Image via Compose
+        run: docker compose -f ServiceName/deployment/docker-compose.yml build api
